@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <h3>Budgeting App In-Memory</h3>
+        <div id="app">
+            <input id="income" placeholder="Enter Income" />
+            <button id="addIncomeBtn" onclick="addIncome()">Add Income</button>
+        </div>
+
+        <h3>Allocate Income to Envelopes</h3>   
+       
+         <div id="envelopes">
+            <!-- Envelopes will be dynamically loaded here -->
+        </div>
+
+
+        <pre id="state"></pre>
+        <script>
+            async function loadState() {
+                const response = await fetch('/state');
+                const state = await response.json();
+                document.getElementById('state').textContent = JSON.stringify(state, null, 2);
+                renderEnvelopes(state);
+            }
+
+            function renderEnvelopes(state) {
+                const envelopesDiv = document.getElementById('envelopes');
+                envelopesDiv.innerHTML = '';
+                
+                state.envelopes.forEach(envelope => {
+                    const envelopeCard = document.createElement('div');
+                    envelopeCard.style.marginBottom = '15px';
+                    envelopeCard.style.padding = '10px';
+                    envelopeCard.style.border = '1px solid #ccc';
+                    
+                    envelopeCard.innerHTML = `
+                        <h4>${envelope.name} - Balance: $${envelope.balance}</h4>
+                        <div>
+                            <input type="number" id="allocate-${envelope.id}" placeholder="Amount to allocate" />
+                            <button onclick="allocateIncome(${envelope.id})">Allocate</button>
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <input type="number" id="spend-${envelope.id}" placeholder="Amount to spend" />
+                            <button onclick="spendFromEnvelope(${envelope.id})">Spend</button>
+                        </div>
+                    `;
+                    
+                    envelopesDiv.appendChild(envelopeCard);
+                });
+            }
+
+            async function addIncome() {
+                const amount = Number(document.getElementById('income').value);
+                await fetch('/income', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ amount })
+                });
+                document.getElementById('income').value = '';
+                loadState();
+            }
+
+            async function allocateIncome(envelopeId) {
+                const amount = Number(document.getElementById(`allocate-${envelopeId}`).value);
+                await fetch('/allocate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ envelopeId, amount })
+                });
+                document.getElementById(`allocate-${envelopeId}`).value = '';
+                loadState();
+            }
+
+            async function spendFromEnvelope(envelopeId) {
+                const amount = Number(document.getElementById(`spend-${envelopeId}`).value);
+                await fetch('/spend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ envelopeId, amount })
+                });
+                document.getElementById(`spend-${envelopeId}`).value = '';
+                loadState();
+            }
+            
+            loadState();
+        </script>
+    </body>
+</html>
